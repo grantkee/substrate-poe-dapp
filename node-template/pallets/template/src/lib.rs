@@ -4,7 +4,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, Blake2_128Concat};
 	use frame_system::pallet_prelude::*;
 
 	// The struct on which we build all of our Pallet logic.
@@ -44,7 +44,17 @@ pub mod pallet {
 		NotProofOwner,
 	}
 
-	// TODO: add #[pallet::storage] block
+	// use FRAME StorageMap trait for HashMap
+	#[pallet::storage]
+	/// Map each proof to its owner and block number
+	/// for when the proof was made.
+	pub(super) type Proofs<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		BoundedVec<u8, T::MaxBytesInHash>,
+		(T::AccountId, T::BlockNumber),
+		OptionQuery,
+	>;
 
 	// TODO: Update the `call` block below
 	#[pallet::call]
