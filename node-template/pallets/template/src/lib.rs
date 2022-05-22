@@ -4,7 +4,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, Blake2_128Concat};
+	use frame_support::{pallet_prelude::*, storage::bounded_vec::BoundedVec};
 	use frame_system::pallet_prelude::*;
 
 	// The struct on which we build all of our Pallet logic.
@@ -56,7 +56,58 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
-	// TODO: Update the `call` block below
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(1_000)]
+		pub fn create_claim(
+			origin: OriginFor<T>,
+			proof: BoundedVec<u8, T::MaxBytesInHash>,
+		) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// Return an error if the extrinsic is not signed.
+			let sender = ensure_signed(origin)?;
+
+			// verify the specified proof is not yet claimed
+			ensure!(!Proofs::<T>::contains_key(&proof), Error::<T>::ProofAlreadyClaimed);
+
+			// get the block number from the FRAME System Pallet
+			let current_block = <frame_system::Pallet<T>>::block_number();
+
+			// add proof = sender:block_number
+			Proofs::<T>::insert(&proof, (&sender, current_block));
+
+			// emit claim created event
+			Self::deposit_event(Event::ClaimCreated(sender, proof));
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn revoke_claim(
+			origin: OriginFor<T>,
+			proof: BoundedVec<u8, T::MaxBytesInHash>,
+		) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// Return an error if the extrinsic is not signed.
+			let sender = ensure_signed(origin)?;
+
+			// verify the specified proof is already claimed
+			ensure!(Proofs::<T>::contains_key(&proof), Error::<T>::NoSuchProof);
+
+			// get owner of the claim
+			// key cannot be `None` owner, so this must always unwrap
+			let (owner, _) = Proofs::<T>::get(&proof).expect("All proofs must have an owner!");
+
+			// Verify that sender if the current call is also the claim owner
+			ensure!(sender == owner, Error::<T>::NotProofOwner);
+
+			// Remove claim from storage
+			Proofs::<T>::remove(&proof);
+
+			// emit claim revoked event
+			Self::deposit_event(Event::ClaimRevoked(sender, proof));
+
+			Ok(())
+		}
+	}
 }
