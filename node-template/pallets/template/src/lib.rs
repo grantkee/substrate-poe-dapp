@@ -34,9 +34,15 @@ pub mod pallet {
 		ClaimRevoked(T::AccountId, BoundedVec<u8, T::MaxBytesInHash>),
 	}
 
-	// TODO: Update the `error` block below
 	#[pallet::error]
-	pub enum Error<T> {}
+	pub enum Error<T> {
+		/// Proof already claimed.
+		ProofAlreadyClaimed,
+		/// Proof does not exist.
+		NoSuchProof,
+		/// Proof is claimed by another account.
+		NotProofOwner,
+	}
 
 	// TODO: add #[pallet::storage] block
 
