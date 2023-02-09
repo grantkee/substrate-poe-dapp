@@ -23,7 +23,7 @@ yarn install
 ```
 
 ### Usage
-
+I recommend starting a docker container and doing the following:
 You can start the template in development mode to connect to a locally running node
 
 ```bash
